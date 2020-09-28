@@ -128,3 +128,46 @@ func TestRequestedAuthnContextIncluded(t *testing.T) {
 	require.Equal(t, el.Tag, "AuthnContextClassRef")
 	require.Equal(t, el.Text(), AuthnContextPasswordProtectedTransport)
 }
+
+func TestNameIdPolicyOmitted(t *testing.T) {
+	spURL := "https://sp.test"
+	sp := SAMLServiceProvider{
+		AssertionConsumerServiceURL: spURL,
+		AudienceURI:                 spURL,
+		IdentityProviderIssuer:      spURL,
+		IdentityProviderSSOURL:      "https://idp.test/saml/sso",
+		SignAuthnRequests:           false,
+	}
+
+	request, err := sp.BuildAuthRequest()
+	require.NoError(t, err)
+
+	doc := etree.NewDocument()
+	err = doc.ReadFromString(request)
+	require.NoError(t, err)
+
+	el := doc.FindElement("./AuthnRequest/NameIDPolicy")
+	require.Nil(t, el.SelectAttr("Format"))
+}
+
+func TestNameIdPolicyIncluded(t *testing.T) {
+	spURL := "https://sp.test"
+	sp := SAMLServiceProvider{
+		AssertionConsumerServiceURL: spURL,
+		AudienceURI:                 spURL,
+		IdentityProviderIssuer:      spURL,
+		IdentityProviderSSOURL:      "https://idp.test/saml/sso",
+		SignAuthnRequests:           false,
+		NameIdFormat:                NameIdFormatUnspecified,
+	}
+
+	request, err := sp.BuildAuthRequest()
+	require.NoError(t, err)
+
+	doc := etree.NewDocument()
+	err = doc.ReadFromString(request)
+	require.NoError(t, err)
+
+	el := doc.FindElement("./AuthnRequest/NameIDPolicy")
+	require.Equal(t, el.SelectAttrValue("Format", ""), NameIdFormatUnspecified)
+}
